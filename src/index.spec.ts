@@ -1,12 +1,44 @@
 import { describe, test, expect } from "vitest"
 import * as khz from "./"
 
+const A3 = 220
 const Aflat4 = 415.305
 const A4 = 440
 const Asharp4 = 466.1639
 const C5 = 523.2511306011972
 const A5 = 880
 
+describe("validateHz", () => {
+  test("accepts positive finite numbers", () => {
+    expect(() => khz.validateHz(1)).not.toThrow()
+    expect(() => khz.validateHz(440)).not.toThrow()
+    expect(() => khz.validateHz(0.0001)).not.toThrow()
+  })
+  test("throws on zero", () => {
+    expect(() => khz.validateHz(0)).toThrow()
+  })
+  test("throws on negative numbers", () => {
+    expect(() => khz.validateHz(-1)).toThrow()
+    expect(() => khz.validateHz(-440)).toThrow()
+  })
+  test("throws on NaN", () => {
+    expect(() => khz.validateHz(NaN)).toThrow()
+  })
+  test("throws on Infinity and -Infinity", () => {
+    expect(() => khz.validateHz(Infinity)).toThrow()
+    expect(() => khz.validateHz(-Infinity)).toThrow()
+  })
+  test("throws on non-number types", () => {
+    // @ts-expect-error
+    expect(() => khz.validateHz("440")).toThrow()
+    // @ts-expect-error
+    expect(() => khz.validateHz(null)).toThrow()
+    // @ts-expect-error
+    expect(() => khz.validateHz(undefined)).toThrow()
+    // @ts-expect-error
+    expect(() => khz.validateHz({})).toThrow()
+  })
+})
 describe("from semitones", function () {
   describe("semitonesToCents", function () {
     ;[
@@ -312,6 +344,27 @@ describe("from named note", () => {
       expect(khz.namedNoteToHz("C")).toBeCloseTo(261.63)
     })
   })
+  describe("getNoteIndexInOctave", () => {
+    test("throws on invalid note name", () => {
+      expect(() => khz.getNoteIndexInOctave("H")).toThrow()
+      expect(() => khz.getNoteIndexInOctave("")).toThrow()
+    })
+  })
+  describe("cleanNoteName", () => {
+    test("throws on invalid note name", () => {
+      expect(() => khz.cleanNoteName("H#4")).toThrow()
+      expect(() => khz.cleanNoteName("4C#")).toThrow()
+    })
+  })
+  describe("hzToNoteName edge cases", () => {
+    test("handles zero or negative Hz", () => {
+      expect(() => khz.hzToNoteName(0)).toThrow()
+      expect(() => khz.hzToNoteName(-440)).toThrow()
+    })
+    test("handles very high Hz", () => {
+      expect(khz.hzToNoteName(1e6)).toBeDefined()
+    })
+  })
   describe("namedNoteToRatio", () => {
     test("A4", () => expect(khz.namedNoteToRatio("A4")).toBeCloseTo(1))
     test("A5", () => expect(khz.namedNoteToRatio("A5")).toBeCloseTo(2))
@@ -386,5 +439,34 @@ describe("Pitch class", () => {
         expect(sharp.noteObject.detune).toBe(0)
       })
     })
+  })
+
+  test("addSemitones and transpose", () => {
+    const pitch = new khz.Pitch(440)
+    pitch.addSemitones(12)
+    expect(pitch.hz).toBeCloseTo(880)
+    pitch.transpose(-12)
+    expect(pitch.hz).toBeCloseTo(440)
+  })
+  test("addCents and detune", () => {
+    const pitch = new khz.Pitch(440)
+    pitch.addCents(1200)
+    expect(pitch.hz).toBeCloseTo(880)
+    pitch.detune(-1200)
+    expect(pitch.hz).toBeCloseTo(440)
+  })
+  test("shift", () => {
+    const pitch = new khz.Pitch(440)
+    pitch.shift(10)
+    expect(pitch.hz).toBeCloseTo(450)
+    pitch.shift(-10)
+    expect(pitch.hz).toBeCloseTo(440)
+  })
+  test("modRatio", () => {
+    const pitch = new khz.Pitch(440)
+    pitch.modRatio(2)
+    expect(pitch.hz).toBeCloseTo(880)
+    pitch.modRatio(0.5)
+    expect(pitch.hz).toBeCloseTo(440)
   })
 })
