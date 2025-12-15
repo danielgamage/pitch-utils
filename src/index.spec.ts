@@ -1,12 +1,44 @@
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, beforeEach } from "vitest"
 import * as khz from "./"
 
+const A3 = 220
 const Aflat4 = 415.305
 const A4 = 440
 const Asharp4 = 466.1639
 const C5 = 523.2511306011972
 const A5 = 880
 
+describe("validateHz", () => {
+  test("accepts positive finite numbers", () => {
+    expect(() => khz.validateHz(1)).not.toThrow()
+    expect(() => khz.validateHz(440)).not.toThrow()
+    expect(() => khz.validateHz(0.0001)).not.toThrow()
+  })
+  test("throws on zero", () => {
+    expect(() => khz.validateHz(0)).toThrow()
+  })
+  test("throws on negative numbers", () => {
+    expect(() => khz.validateHz(-1)).toThrow()
+    expect(() => khz.validateHz(-440)).toThrow()
+  })
+  test("throws on NaN", () => {
+    expect(() => khz.validateHz(NaN)).toThrow()
+  })
+  test("throws on Infinity and -Infinity", () => {
+    expect(() => khz.validateHz(Infinity)).toThrow()
+    expect(() => khz.validateHz(-Infinity)).toThrow()
+  })
+  test("throws on non-number types", () => {
+    // @ts-expect-error
+    expect(() => khz.validateHz("440")).toThrow()
+    // @ts-expect-error
+    expect(() => khz.validateHz(null)).toThrow()
+    // @ts-expect-error
+    expect(() => khz.validateHz(undefined)).toThrow()
+    // @ts-expect-error
+    expect(() => khz.validateHz({})).toThrow()
+  })
+})
 describe("from semitones", function () {
   describe("semitonesToCents", function () {
     ;[
@@ -37,6 +69,47 @@ describe("from semitones", function () {
     ].forEach(({ input, output }) => {
       test(`${input} → ${output}`, () => {
         expect(khz.semitonesToRatio(input)).toBeCloseTo(output)
+      })
+    })
+  })
+  describe("semitonesToMidi", function () {
+    const tests = [
+      { semitones: 0, midi: 69 },
+      { semitones: 12, midi: 81 },
+      { semitones: -69, midi: 0 },
+      { semitones: 58, midi: 127 },
+    ]
+    tests.forEach(({ semitones, midi }) => {
+      test(`semitonesToMidi(${semitones}) → ${midi}`, () => {
+        expect(khz.semitonesToMidi(semitones)).toBe(midi)
+      })
+    })
+  })
+  describe("semitonesToNoteName", () => {
+    const tests = [
+      { semitones: 0, note: "A" },
+      { semitones: 3, note: "C" },
+      { semitones: -9, note: "C" },
+      { semitones: 12, note: "A" },
+    ]
+    tests.forEach(({ semitones, note }) => {
+      test(`semitonesToNoteName(${semitones}) → ${note}`, () => {
+        expect(khz.semitonesToNoteName(semitones)).toBe(note)
+      })
+    })
+  })
+  describe("semitonesToNoteObject", () => {
+    const tests = [
+      { semitones: 0, note: "A", octave: 4 },
+      { semitones: 3, note: "C", octave: 5 },
+      { semitones: -9, note: "C", octave: 4 },
+      { semitones: 12, note: "A", octave: 5 },
+    ]
+    tests.forEach(({ semitones, note, octave }) => {
+      test(`semitonesToNoteObject(${semitones}) → ${note}${octave}`, () => {
+        const result = khz.semitonesToNoteObject(semitones)
+        expect(result.note).toBe(note)
+        expect(result.octave).toBe(octave)
       })
     })
   })
@@ -142,6 +215,20 @@ describe("from Hz", function () {
       expect(khz.hzToSemitones(A4 / 2)).toEqual(-12)
     })
   })
+  describe("hzToMidi", function () {
+    // approximate is fine since it rounds
+    const tests = [
+      { hz: 440, midi: 69 },
+      { hz: 261, midi: 60 },
+      { hz: 8, midi: 0 },
+      { hz: 12543, midi: 127 },
+    ]
+    tests.forEach(({ hz, midi }) => {
+      test(`hzToMidi(${hz}) → ${midi}`, () => {
+        expect(khz.hzToMidi(hz)).toBe(midi)
+      })
+    })
+  })
 })
 describe("from cents", function () {
   describe("centsToSemitones", function () {
@@ -174,6 +261,49 @@ describe("from cents", function () {
     ].forEach(({ input, output }) => {
       test(`${input} → ${output}`, () => {
         expect(khz.centsToHz(input)).toBeCloseTo(output)
+      })
+    })
+  })
+  describe("centsToNoteName", () => {
+    ;[
+      { input: 0, output: "A" },
+      { input: -900, output: "C" },
+      { input: 300, output: "C" },
+      { input: 1200, output: "A" },
+    ].forEach(({ input, output }) => {
+      test(`${input} → ${output}`, () => {
+        expect(khz.centsToNoteName(input)).toBe(output)
+      })
+    })
+  })
+  describe("centsToNoteObject", () => {
+    const tests = [
+      { cents: 0, note: "A", octave: 4 },
+      { cents: -900, note: "C", octave: 4 },
+      { cents: 300, note: "C", octave: 5 },
+      { cents: 1200, note: "A", octave: 5 },
+    ]
+    tests.forEach(({ cents, note, octave }) => {
+      test(`centsToNoteObject(${cents}) → ${note}${octave}`, () => {
+        const result = khz.centsToNoteObject(cents)
+        expect(result.note).toBe(note)
+        expect(result.octave).toBe(octave)
+      })
+    })
+  })
+  describe("centsToMidi", function () {
+    const tests = [
+      { cents: 0, midi: 69, roundingMethod: undefined },
+      { cents: 49, midi: 69, roundingMethod: undefined },
+      { cents: 49, midi: 70, roundingMethod: "up" },
+      { cents: 50, midi: 70, roundingMethod: undefined },
+      { cents: 1200, midi: 81, roundingMethod: undefined },
+      { cents: -6900, midi: 0, roundingMethod: undefined },
+      { cents: 5800, midi: 127, roundingMethod: undefined },
+    ] as const
+    tests.forEach(({ cents, midi, roundingMethod }) => {
+      test(`centsToMidi(${cents}, ${roundingMethod}) → ${midi}`, () => {
+        expect(khz.centsToMidi(cents, roundingMethod)).toBe(midi)
       })
     })
   })
@@ -230,6 +360,47 @@ describe("from ratio", () => {
     })
     test("converts fractional ratios", () => {
       expect(khz.ratioToSemitones(3 / 2)).toBeCloseTo(7.02)
+    })
+  })
+  describe("ratioToNoteName", () => {
+    const tests = [
+      { ratio: 1, note: "A" },
+      { ratio: 2, note: "A" },
+      { ratio: 1.4983070768766815, note: "E" },
+      { ratio: 0.5, note: "A" },
+    ]
+    tests.forEach(({ ratio, note }) => {
+      test(`ratioToNoteName(${ratio}) → ${note}`, () => {
+        expect(khz.ratioToNoteName(ratio)).toBe(note)
+      })
+    })
+  })
+  describe("ratioToNoteObject", () => {
+    const tests = [
+      { ratio: 1, note: "A", octave: 4 },
+      { ratio: 2, note: "A", octave: 5 },
+      { ratio: 3, note: "E", octave: 6 },
+      { ratio: 0.5, note: "A", octave: 3 },
+    ]
+    tests.forEach(({ ratio, note, octave }) => {
+      test(`ratioToNoteObject(${ratio}) → ${note}${octave}`, () => {
+        const result = khz.ratioToNoteObject(ratio)
+        expect(result.note).toBe(note)
+        expect(result.octave).toBe(octave)
+      })
+    })
+  })
+  describe("ratioToMidi", () => {
+    const tests = [
+      { ratio: 1, midi: 69 },
+      { ratio: 2, midi: 81 },
+      { ratio: 0.5, midi: 57 },
+      { ratio: 4, midi: 93 },
+    ]
+    tests.forEach(({ ratio, midi }) => {
+      test(`ratioToMidi(${ratio}) → ${midi}`, () => {
+        expect(khz.ratioToMidi(ratio)).toBe(midi)
+      })
     })
   })
 })
@@ -312,6 +483,55 @@ describe("from named note", () => {
       expect(khz.namedNoteToHz("C")).toBeCloseTo(261.63)
     })
   })
+  describe("namedNoteToNoteObject", () => {
+    const tests = [
+      { note: "C4", hz: 261.626, octave: 4 },
+      { note: "A3", hz: 220, octave: 3 },
+      { note: "G♯4", hz: 415.305, octave: 4 },
+    ]
+    tests.forEach(({ note, hz, octave }) => {
+      test(`${note}`, () => {
+        const result = khz.namedNoteToNoteObject(note)
+        expect(result.octave).toBe(octave)
+        expect(result.detune).toBeCloseTo(0)
+        expect(result.hz).toBeCloseTo(hz)
+      })
+    })
+  })
+  describe("namedNoteToMidi", () => {
+    const tests = [
+      { note: "A4", midi: 69 },
+      { note: "C4", midi: 60 },
+      { note: "C♯4", midi: 61 },
+      { note: "G3", midi: 55 },
+    ]
+    tests.forEach(({ note, midi }) => {
+      test(`namedNoteToMidi(${note}) → ${midi}`, () => {
+        expect(khz.namedNoteToMidi(note)).toBe(midi)
+      })
+    })
+  })
+  describe("getNoteIndexInOctave", () => {
+    test("throws on invalid note name", () => {
+      expect(() => khz.getNoteIndexInOctave("H")).toThrow()
+      expect(() => khz.getNoteIndexInOctave("")).toThrow()
+    })
+  })
+  describe("cleanNoteName", () => {
+    test("throws on invalid note name", () => {
+      expect(() => khz.cleanNoteName("H#4")).toThrow()
+      expect(() => khz.cleanNoteName("4C#")).toThrow()
+    })
+  })
+  describe("hzToNoteName edge cases", () => {
+    test("handles zero or negative Hz", () => {
+      expect(() => khz.hzToNoteName(0)).toThrow()
+      expect(() => khz.hzToNoteName(-440)).toThrow()
+    })
+    test("handles very high Hz", () => {
+      expect(khz.hzToNoteName(1e6)).toBeDefined()
+    })
+  })
   describe("namedNoteToRatio", () => {
     test("A4", () => expect(khz.namedNoteToRatio("A4")).toBeCloseTo(1))
     test("A5", () => expect(khz.namedNoteToRatio("A5")).toBeCloseTo(2))
@@ -347,6 +567,84 @@ describe("from named note", () => {
     })
   })
 })
+describe("from MIDI", () => {
+  describe("midiToSemitones", () => {
+    const tests = [
+      { midi: 69, semitones: 0 },
+      { midi: 81, semitones: 12 },
+      { midi: 0, semitones: -69 },
+      { midi: 127, semitones: 58 },
+    ]
+    tests.forEach(({ midi, semitones }) => {
+      test(`midiToSemitones(${midi}) → ${semitones}`, () => {
+        expect(khz.midiToSemitones(midi)).toBe(semitones)
+      })
+    })
+  })
+  describe("midiToHz", () => {
+    const tests = [
+      { midi: 69, hz: 440 },
+      { midi: 60, hz: 261.6255653005986 },
+      { midi: 0, hz: 8.175798915643707 },
+      { midi: 127, hz: 12543.853951415975 },
+    ]
+    tests.forEach(({ midi, hz }) => {
+      test(`midiToHz(${midi}) ≈ ${hz}`, () => {
+        expect(khz.midiToHz(midi)).toBeCloseTo(hz)
+      })
+    })
+  })
+  describe("midiToCents", () => {
+    const tests = [
+      { midi: 69, cents: 0 },
+      { midi: 81, cents: 1200 },
+    ]
+    tests.forEach(({ midi, cents }) => {
+      test(`midiToCents(${midi}) → ${cents}`, () => {
+        expect(khz.midiToCents(midi)).toBe(cents)
+      })
+    })
+  })
+  describe("midiToRatio", () => {
+    const tests = [
+      { midi: 69, ratio: 1 },
+      { midi: 81, ratio: 2 },
+      { midi: 57, ratio: 0.5 },
+      { midi: 93, ratio: 4 },
+    ]
+    tests.forEach(({ midi, ratio }) => {
+      test(`midiToRatio(${midi}) → ${ratio}`, () => {
+        expect(khz.midiToRatio(midi)).toBeCloseTo(ratio)
+      })
+    })
+  })
+  describe("midiToNoteName", () => {
+    const tests = [
+      { midi: 69, note: "A" },
+      { midi: 60, note: "C" },
+      { midi: 61, note: "C♯" },
+    ]
+    tests.forEach(({ midi, note }) => {
+      test(`midiToNoteName(${midi}) → ${note}`, () => {
+        expect(khz.midiToNoteName(midi)).toBe(note)
+      })
+    })
+  })
+  describe("midiToNoteObject", () => {
+    const tests = [
+      { midi: 69, note: "A", octave: 4 },
+      { midi: 60, note: "C", octave: 4 },
+      { midi: 61, note: "C♯", octave: 4 },
+    ]
+    tests.forEach(({ midi, note, octave }) => {
+      test(`midiToNoteObject(${midi}) → ${note}${octave}`, () => {
+        const result = khz.midiToNoteObject(midi)
+        expect(result.note).toBe(note)
+        expect(result.octave).toBe(octave)
+      })
+    })
+  })
+})
 describe("Pitch class", () => {
   describe("initializers", () => {
     describe("constructor()", () => {
@@ -361,6 +659,13 @@ describe("Pitch class", () => {
         expect(khz.Pitch.fromNamedNote("A3").hz).toBeCloseTo(220)
       })
     })
+    describe(".fromMidi()", () => {
+      test("initializes from MIDI", () => {
+        expect(khz.Pitch.fromMidi(69).hz).toBeCloseTo(440)
+        expect(khz.Pitch.fromMidi(57).hz).toBeCloseTo(220)
+        expect(khz.Pitch.fromMidi(45).hz).toBeCloseTo(110)
+      })
+    })
   })
   describe("getters", () => {
     test(".noteAbove/.noteBelow", () => {
@@ -368,6 +673,20 @@ describe("Pitch class", () => {
       expect(pitch.closestNoteBelow.note).toBe("F")
       expect(pitch.noteObject.note).toBe("F♯")
       expect(pitch.closestNoteAbove.note).toBe("F♯")
+    })
+    test(".midi", () => {
+      expect(new khz.Pitch(440).midi).toBe(69)
+      expect(new khz.Pitch(261.63).midi).toBe(60)
+    })
+    test(".octave", () => {
+      expect(new khz.Pitch(440).octave).toBe(4)
+      expect(new khz.Pitch(261.63).octave).toBe(4)
+      expect(new khz.Pitch(27.5).octave).toBe(0)
+    })
+    test(".noteName", () => {
+      expect(new khz.Pitch(440).noteName).toBe("A")
+      expect(new khz.Pitch(261.63).noteName).toBe("C")
+      expect(new khz.Pitch(277.18).noteName).toBe("C♯")
     })
   })
   test(".hz updates", () => {
@@ -384,6 +703,62 @@ describe("Pitch class", () => {
         expect(sharp.noteObject.note).toBe("A")
         expect(sharp.noteObject.octave).toBe(4)
         expect(sharp.noteObject.detune).toBe(0)
+      })
+    })
+  })
+
+  test(".addSemitones and .transpose", () => {
+    const pitch = new khz.Pitch(440)
+    pitch.addSemitones(12)
+    expect(pitch.hz).toBeCloseTo(880)
+    pitch.transpose(-12)
+    expect(pitch.hz).toBeCloseTo(440)
+  })
+  test(".addCents and de.tune", () => {
+    const pitch = new khz.Pitch(440)
+    pitch.addCents(1200)
+    expect(pitch.hz).toBeCloseTo(880)
+    pitch.detune(-1200)
+    expect(pitch.hz).toBeCloseTo(440)
+  })
+  test(".shift", () => {
+    const pitch = new khz.Pitch(440)
+    pitch.shift(10)
+    expect(pitch.hz).toBeCloseTo(450)
+    pitch.shift(-10)
+    expect(pitch.hz).toBeCloseTo(440)
+  })
+  test(".modRatio", () => {
+    const pitch = new khz.Pitch(440)
+    pitch.modRatio(2)
+    expect(pitch.hz).toBeCloseTo(880)
+    pitch.modRatio(0.5)
+    expect(pitch.hz).toBeCloseTo(440)
+  })
+  describe("relative methods", () => {
+    // before each, make two pitches at 440 and 880 Hz
+    let pitch440: khz.Pitch
+    let pitch880: khz.Pitch
+    const pitch880Hz = 880
+
+    beforeEach(() => {
+      pitch440 = new khz.Pitch(440)
+      pitch880 = new khz.Pitch(880)
+    })
+
+    const tests = [
+      { method: "semitonesFrom", value: -12},
+      { method: "semitonesTo", value: 12},
+      { method: "centsFrom", value: -1200},
+      { method: "centsTo", value: 1200},
+      { method: "ratioFrom", value: 0.5},
+      { method: "ratioTo", value: 2},
+    ]
+
+    tests.forEach(({ method, value }) => {
+      test(`.${method}(880) // ${value}`, () => {
+        expect((pitch440 as any)[method](pitch880)).toBeCloseTo(value)
+        expect((pitch440 as any)[method](pitch880Hz)).toBeCloseTo(value)
       })
     })
   })

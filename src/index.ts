@@ -1,3 +1,4 @@
+
 /**
  *
  * This (ESM)  module provides a collection of functions for converting between pitch and frequency units.
@@ -14,14 +15,14 @@
  * ```
  *
  * ## Conversion Overview
- * |                  | → hz                  | → ratio                  | → semitones                  | → cents                  | → midi                   | → named               | → note object          |
- * | :--------------- | :-------------------- | :----------------------- | :--------------------------- | :----------------------- | :----------------------- | :-------------------- | :--------------------- |
- * | hz&nbsp;→        | _N/A_                 | {@link hzToRatio}        | {@link hzToSemitones}        | {@link hzToCents}        | {@link hzToMidi}         | {@link hzToNoteName}  | {@link hzToNoteObject} |
- * | ratio&nbsp;→     | {@link ratioToHz}     | _N/A_                    | {@link ratioToSemitones}     | {@link ratioToCents}     | {@link ratioToMidi}      | _Unimplemented_       | _Unimplemented_        |
- * | semitones&nbsp;→ | {@link semitonesToHz} | {@link semitonesToRatio} | _N/A_                        | {@link semitonesToCents} | {@link semitonesToMidi}  | _Unimplemented_       | _Unimplemented_        |
- * | cents&nbsp;→     | {@link centsToHz}     | {@link centsToRatio}     | {@link centsToSemitones}     | _N/A_                    | {@link centsToMidi}      | _Unimplemented_       | _Unimplemented_        |
- * | midi&nbsp;→      | {@link midiToHz}      | {@link midiToRatio}      | {@link midiToSemitones}      | {@link midiToCents}      | _N/A_                    | _Unimplemented_       | _Unimplemented_        |
- * | named&nbsp;→     | {@link namedNoteToHz} | {@link namedNoteToRatio} | {@link namedNoteToSemitones} | {@link namedNoteToCents} | {@link namedNoteToMidi}  | _N/A_                 | _Unimplemented_        |
+ * |                  | → hz                  | → ratio                  | → semitones                  | → cents                  | → midi                   | → named                     | → note object                 |
+ * | :--------------- | :-------------------- | :----------------------- | :--------------------------- | :----------------------- | :----------------------- | :-------------------------- | :---------------------------- |
+ * | hz&nbsp;→        | _N/A_                 | {@link hzToRatio}        | {@link hzToSemitones}        | {@link hzToCents}        | {@link hzToMidi}         | {@link hzToNoteName}        | {@link hzToNoteObject}        |
+ * | ratio&nbsp;→     | {@link ratioToHz}     | _N/A_                    | {@link ratioToSemitones}     | {@link ratioToCents}     | {@link ratioToMidi}      | {@link ratioToNoteName}     | {@link ratioToNoteObject}     |
+ * | semitones&nbsp;→ | {@link semitonesToHz} | {@link semitonesToRatio} | _N/A_                        | {@link semitonesToCents} | {@link semitonesToMidi}  | {@link semitonesToNoteName} | {@link semitonesToNoteObject} |
+ * | cents&nbsp;→     | {@link centsToHz}     | {@link centsToRatio}     | {@link centsToSemitones}     | _N/A_                    | {@link centsToMidi}      | {@link centsToNoteName}     | {@link centsToNoteObject}     |
+ * | midi&nbsp;→      | {@link midiToHz}      | {@link midiToRatio}      | {@link midiToSemitones}      | {@link midiToCents}      | _N/A_                    | {@link midiToNoteName}      | {@link midiToNoteObject}      |
+ * | named&nbsp;→     | {@link namedNoteToHz} | {@link namedNoteToRatio} | {@link namedNoteToSemitones} | {@link namedNoteToCents} | {@link namedNoteToMidi}  | _N/A_                       | {@link namedNoteToNoteObject} |
  *
  * @packageDocumentation
  */
@@ -150,7 +151,7 @@ export const getRoundingFunction = (roundingMethod: RoundingMethod) => {
     nearest: Math.round,
     up: Math.ceil,
     down: Math.floor,
-  }[roundingMethod]
+  }[roundingMethod] ?? Math.round
 }
 /**
  *
@@ -176,10 +177,35 @@ export function cleanNoteName(
   /** dirty note name, with name, optional accidental, and octave */
   dirtyNote: string
 ): string {
-  return dirtyNote
-    .replace(/([A-Za-z])(b)/g, "$1♭") // replace b with ♭
-    .replace("#", "♯") // replace # with ♯
-    .toUpperCase()
+  // Match: note letter, optional accidental(s), optional octave (e.g. C#4, dbb3, F♯♯5, etc.)
+  const match = dirtyNote.match(/^([A-Ga-g])((?:b+|#+|♭+|♯+)*)\s*(-?\d+)?$/)
+  if (!match) {
+    throw new Error(`Invalid note name: "${dirtyNote}"`)
+  }
+  let [, letter, accidentals = "", octave = ""] = match
+
+  // Replace all 'b' with '♭', all '#' with '♯', but keep explicit '♭' and '♯'
+  accidentals = accidentals.replace(/b/g, "♭").replace(/#/g, "♯")
+
+  // Uppercase note letter, keep accidentals and octave as is
+  return `${letter.toUpperCase()}${accidentals}${octave}`
+}
+
+/**
+ * Validates that a frequency value is a positive, non-zero number.
+ * Throws an error if the value is zero, negative, or not a number.
+ * @param hz The frequency in Hz to validate
+ * @example ```js
+ * validateHz(440) // passes
+ * validateHz(0) // throws error
+ * validateHz(-220) // throws error
+ * validateHz(NaN) // throws error
+ * ```
+ */
+export function validateHz(hz: Hz): asserts hz is Hz {
+  if (typeof hz !== "number" || !Number.isFinite(hz) || hz <= 0) {
+    throw new Error(`Hz value must be a positive, non-zero number. Received: ${hz}`)
+  }
 }
 
 /**
@@ -197,6 +223,7 @@ export function formatHz(
   /** whether to include (+) signs */
   alwaysIncludeSign = false
 ): string {
+  validateHz(hz)
   const addPlusSign = alwaysIncludeSign && hz >= 0
   let sign = addPlusSign ? "+" : ""
   if (hz >= 1000) {
@@ -249,13 +276,21 @@ export function semitonesToRatio(
 }
 
 /**
+ * Returns a MIDI note number relative to A4 (69).
  * @example ```js
  * semitonesToMidi(0) // 69
  * semitonesToMidi(12) // 81
  * ```
  */
-export function semitonesToMidi(semitones: Semitones): MIDINoteNumber {
-  return semitones + 69
+export function semitonesToMidi(semitones: Semitones, roundingMethod?: RoundingMethod): MIDINoteNumber {
+  return getRoundingFunction(roundingMethod)(semitones) + 69
+}
+
+export function semitonesToNoteName(semitones: Semitones, baseHz: Hz = A4): string {
+  return hzToNoteName(semitonesToHz(semitones, baseHz))
+}
+export function semitonesToNoteObject(semitones: Semitones, baseHz: Hz = A4): NoteObject {
+  return hzToNoteObject(semitonesToHz(semitones, baseHz))
 }
 
 // =====================
@@ -292,8 +327,27 @@ export function centsToHz(cents: Cents, baseHz: Hz = A4): Hz {
  * centsToMidi(1200) // 81
  * ```
  */
-export function centsToMidi(cents: Cents): MIDINoteNumber {
-  return semitonesToMidi(centsToSemitones(cents))
+export function centsToMidi(cents: Cents, roundingMethod?: RoundingMethod): MIDINoteNumber {
+  return semitonesToMidi(centsToSemitones(cents), roundingMethod)
+}
+
+/**
+ * @example ```js
+ * centsToNoteName(0) // "A"
+ * centsToNoteName(1200) // "A"
+ * ```
+ */
+export function centsToNoteName(cents: Cents): string {
+  return hzToNoteName(centsToHz(cents))
+}
+/**
+ * @example ```js
+ * centsToNoteObject(0) // {note: "A", octave: 4, hz: 440, detune: 0}
+ * centsToNoteObject(1200) // {note: "A", octave: 5, hz: 880, detune: 0}
+ * ```
+ */
+export function centsToNoteObject(cents: Cents): NoteObject {
+  return hzToNoteObject(centsToHz(cents))
 }
 
 // =====================
@@ -364,6 +418,10 @@ export function namedNoteToMidi(note: NoteName): MIDINoteNumber {
   return semitonesToMidi(namedNoteToSemitones(note))
 }
 
+export function namedNoteToNoteObject(note: NoteName): NoteObject {
+  return hzToNoteObject(namedNoteToHz(note))
+}
+
 /**
  * @example ```js
  * isNoteWhiteOnPiano("C4") // true
@@ -427,14 +485,21 @@ export function ratioToCents(
   return semitonesToCents(ratioToSemitones(ratio))
 }
 
+export function ratioToNoteName(ratio: Ratio): string {
+  return hzToNoteName(ratioToHz(ratio))
+}
+export function ratioToNoteObject(ratio: Ratio): NoteObject {
+  return hzToNoteObject(ratioToHz(ratio))
+}
+
 /**
  * @example ```js
  * ratioToMidi(1) // 69
  * ratioToMidi(2) // 81
  * ```
  */
-export function ratioToMidi(ratio: Ratio): MIDINoteNumber {
-  return semitonesToMidi(ratioToSemitones(ratio))
+export function ratioToMidi(ratio: Ratio, roundingMethod?: RoundingMethod): MIDINoteNumber {
+  return semitonesToMidi(ratioToSemitones(ratio), roundingMethod)
 }
 
 // =====================
@@ -444,23 +509,42 @@ export function ratioToMidi(ratio: Ratio): MIDINoteNumber {
 /**
  * @example ```js
  * midiToSemitones(69) // 0
+ * midiToSemitones(81) // +12
  * ```
  */
 export function midiToSemitones(midi: MIDINoteNumber): Semitones {
   return midi - 69
 }
+/**
+ * @example ```js
+ * midiToHz(69) // 440
+ * midiToHz(60) // 261.62...
+ * ```
+ */
 export function midiToHz(midi: MIDINoteNumber): Hz {
   return semitonesToHz(midiToSemitones(midi))
 }
+/**
+ * @example ```js
+ * midiToCents(69) // 0
+ * midiToCents(81) // 1200
+ * ```
+ */
 export function midiToCents(midi: MIDINoteNumber): Cents {
   return semitonesToCents(midiToSemitones(midi))
 }
+/**
+ * @example ```js
+ * midiToRatio(81) // 2
+ * midiToRatio(69) // 1
+ * ```
+ */
 export function midiToRatio(midi: MIDINoteNumber): Ratio {
   return semitonesToRatio(midiToSemitones(midi))
 }
 export function midiToNoteName(
   midi: MIDINoteNumber,
-  roundingMethod: RoundingMethod = "nearest"
+  roundingMethod?: RoundingMethod
 ): string {
   return hzToNoteName(midiToHz(midi), roundingMethod)
 }
@@ -483,19 +567,21 @@ export function hzToNoteName(
   /** frequency of note in hertz */
   hz: Hz,
   /** whether to round up, down, or naturally */
-  roundingMethod: RoundingMethod = "nearest"
+  roundingMethod?: RoundingMethod
 ): string {
+  validateHz(hz)
   const note =
     getRoundingFunction(roundingMethod)(
       12 * (Math.log(hz / 440) / Math.log(2))
     ) + 69
-  return chromaticScale[(note + 12 * 1000) % 12]
+  return chromaticScale.at((note + 12 * 1000) % 12)
 }
 
 export function hzToNoteObject(
   /** frequency of note in hertz */
   hz: Hz
 ): NoteObject {
+  validateHz(hz)
   const semitone = 12 * (Math.log(hz / 440) / Math.log(2)) + 69
   const round = Math.round(semitone)
   const centRemainder =
@@ -521,12 +607,15 @@ export function hzToRatio(
   /** base frequency in hertz */
   baseHz: Hz = A4
 ): Ratio {
+  validateHz(targetHz)
+  validateHz(baseHz)
   return targetHz / baseHz
 }
 
 /**
+ * When a baseHz is provided, returns the difference in semitones
  * @example ```js
- * hzToSemitones(880, 440) // -12
+ * hzToSemitones(880, 440) // +12
  * ```
  */
 export function hzToSemitones(
@@ -535,15 +624,20 @@ export function hzToSemitones(
   /** base frequency in hertz */
   baseHz: Hz = A4
 ): Semitones {
+  validateHz(targetHz)
+  validateHz(baseHz)
   return 12 * Math.log2(targetHz / baseHz)
 }
 
 /**
+ * When a baseHz is provided, returns the difference in cents
  * @example ```js
- * hzToCents(880, 440) // -1200
+ * hzToCents(880, 440) // +1200
  * ```
  */
 export function hzToCents(targetHz: Hz, baseHz: Hz = A4): Cents {
+  validateHz(targetHz)
+  validateHz(baseHz)
   return semitonesToCents(hzToSemitones(targetHz, baseHz))
 }
 
@@ -553,8 +647,9 @@ export function hzToCents(targetHz: Hz, baseHz: Hz = A4): Cents {
  * hzToMidi(880) // 81
  * ```
  */
-export function hzToMidi(hz: Hz): MIDINoteNumber {
-  return semitonesToMidi(hzToSemitones(hz))
+export function hzToMidi(hz: Hz, roundingMethod?: RoundingMethod): MIDINoteNumber {
+  validateHz(hz)
+  return semitonesToMidi(hzToSemitones(hz), roundingMethod)
 }
 
 /**
@@ -566,8 +661,9 @@ export function hzToMidi(hz: Hz): MIDINoteNumber {
  */
 export function quantizeHz(
   hz: Hz,
-  roundingMethod: RoundingMethod = "nearest"
+  roundingMethod?: RoundingMethod
 ): Hz {
+  validateHz(hz)
   const semitones = hzToSemitones(hz)
   const snappedSemitones = getRoundingFunction(roundingMethod)(semitones)
   return semitonesToHz(snappedSemitones)
@@ -590,6 +686,7 @@ export class Pitch {
     /** frequency of note in hertz */
     public frequency: Hz = A4
   ) {
+    validateHz(frequency)
     this.hz = frequency
   }
   /**
@@ -603,16 +700,13 @@ export class Pitch {
     instance.hz = namedNoteToHz(note)
     return instance
   }
+  static fromMidi(midi: MIDINoteNumber) {
+    const instance = new Pitch()
+    instance.hz = midiToHz(midi)
+    return instance
+  }
 
-  get semitones(): Semitones {
-    return hzToSemitones(this.hz)
-  }
-  get cents(): Cents {
-    return hzToCents(this.hz)
-  }
-  get ratio(): Ratio {
-    return hzToRatio(this.hz)
-  }
+  /** @example for A4, `69` */
   get midi(): MIDINoteNumber {
     return hzToMidi(this.hz)
   }
@@ -620,41 +714,85 @@ export class Pitch {
   get noteObject(): NoteObject {
     return hzToNoteObject(this.hz)
   }
+  /** @example for A4, `4` */
+  get octave(): Octave {
+    return this.noteObject.octave
+  }
+  /** @example for A4, `"A"` */
+  get noteName(): NoteName {
+    return this.noteObject.note
+  }
+  
+  /** returns the nearest note below */
   get closestNoteBelow(): NoteObject {
-    const snappedSemitones = Math.floor(this.semitones)
+    const snappedSemitones = Math.floor(hzToSemitones(this.hz))
     const snappedHz = semitonesToHz(snappedSemitones)
     return hzToNoteObject(snappedHz)
   }
+  /** returns the nearest note above */
   get closestNoteAbove(): NoteObject {
-    const snappedSemitones = Math.ceil(this.semitones)
+    const snappedSemitones = Math.ceil(hzToSemitones(this.hz))
     const snappedHz = semitonesToHz(snappedSemitones)
     return hzToNoteObject(snappedHz)
   }
 
-  quantize(roundingMethod: RoundingMethod = "nearest") {
+  /** snaps the pitch to the nearest semitone */
+  quantize(roundingMethod?: RoundingMethod) {
     this.hz = quantizeHz(this.hz, roundingMethod)
     return this
   }
 
+  /** transposes the current pitch by a number of semitones */
   addSemitones(semitones: Semitones) {
     this.hz = semitonesToHz(semitones, this.hz)
     return this
   }
   transpose = this.addSemitones
 
+  /** shifts the pitch by a number of hertz */
   shift(hz: Hz) {
     this.hz += hz
     return this
   }
 
+  /** detunes the pitch by a number of cents */
   addCents(cents: Cents) {
     this.hz = centsToHz(cents, this.hz)
     return this
   }
   detune = this.addCents
 
+  /** modulates the pitch by a ratio */
   modRatio(ratio: Ratio) {
     this.hz = ratioToHz(ratio, this.hz)
     return this
+  }
+
+  /** semitonesFrom, semitonesTo */
+  semitonesFrom(other: Pitch | Hz): Semitones {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToSemitones(this.hz, otherHz)
+  }
+  semitonesTo(other: Pitch | Hz): Semitones {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToSemitones(otherHz, this.hz)
+  }
+  /** centsFrom, centsTo */
+  centsFrom(other: Pitch | Hz): Cents {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToCents(this.hz, otherHz)
+  }
+  centsTo(other: Pitch | Hz): Cents {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToCents(otherHz, this.hz)
+  }
+  /** ratioFrom, ratioTo */
+  ratioFrom(other: Pitch | Hz): Ratio {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToRatio(this.hz, otherHz)
+  }
+  ratioTo(other: Pitch | Hz): Ratio {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToRatio(otherHz, this.hz)
   }
 }
