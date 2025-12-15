@@ -1,0 +1,27 @@
+## v0.4.0
+- Hz-related inputs now validate the argument before calculating
+- `getRoundingFunction` now returns Math.round if some broken argument is passed in
+- `Pitch` class additions:
+  - instantiation via `Pitch.fromMidi()` (like `fromNamedNote`)
+  - `octave`
+  - `noteName`
+  - removed the following A4-relative getters:
+    - `.semitones`
+    - `.cents`
+    - `.ratio`
+  - added the following methods to be relative to another `Pitch` instance or Hz:
+    - `.semitonesFrom`
+    - `.semitonesTo`
+    - `.centsFrom`
+    - `.centsTo`
+    - `.ratioFrom`
+    - `.ratioTo`
+- New conversions
+  - `semitonesToNoteName`
+  - `semitonesToNoteObject`
+  - `centsToNoteName`
+  - `centsToNoteObject`
+  - `namedNoteToNoteObject`
+  - `ratioToNoteName`
+  - `ratioToNoteObject`
+- adding `roundingMethod` argument to MIDI-related functions

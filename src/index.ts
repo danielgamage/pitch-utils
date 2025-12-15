@@ -151,7 +151,7 @@ export const getRoundingFunction = (roundingMethod: RoundingMethod) => {
     nearest: Math.round,
     up: Math.ceil,
     down: Math.floor,
-  }[roundingMethod]
+  }[roundingMethod] ?? Math.round
 }
 /**
  *
@@ -282,7 +282,7 @@ export function semitonesToRatio(
  * semitonesToMidi(12) // 81
  * ```
  */
-export function semitonesToMidi(semitones: Semitones, roundingMethod: RoundingMethod = "nearest"): MIDINoteNumber {
+export function semitonesToMidi(semitones: Semitones, roundingMethod?: RoundingMethod): MIDINoteNumber {
   return getRoundingFunction(roundingMethod)(semitones) + 69
 }
 
@@ -327,7 +327,7 @@ export function centsToHz(cents: Cents, baseHz: Hz = A4): Hz {
  * centsToMidi(1200) // 81
  * ```
  */
-export function centsToMidi(cents: Cents, roundingMethod: RoundingMethod = "nearest"): MIDINoteNumber {
+export function centsToMidi(cents: Cents, roundingMethod?: RoundingMethod): MIDINoteNumber {
   return semitonesToMidi(centsToSemitones(cents), roundingMethod)
 }
 
@@ -498,7 +498,7 @@ export function ratioToNoteObject(ratio: Ratio): NoteObject {
  * ratioToMidi(2) // 81
  * ```
  */
-export function ratioToMidi(ratio: Ratio, roundingMethod: RoundingMethod = "nearest"): MIDINoteNumber {
+export function ratioToMidi(ratio: Ratio, roundingMethod?: RoundingMethod): MIDINoteNumber {
   return semitonesToMidi(ratioToSemitones(ratio), roundingMethod)
 }
 
@@ -509,23 +509,42 @@ export function ratioToMidi(ratio: Ratio, roundingMethod: RoundingMethod = "near
 /**
  * @example ```js
  * midiToSemitones(69) // 0
+ * midiToSemitones(81) // +12
  * ```
  */
 export function midiToSemitones(midi: MIDINoteNumber): Semitones {
   return midi - 69
 }
+/**
+ * @example ```js
+ * midiToHz(69) // 440
+ * midiToHz(60) // 261.62...
+ * ```
+ */
 export function midiToHz(midi: MIDINoteNumber): Hz {
   return semitonesToHz(midiToSemitones(midi))
 }
+/**
+ * @example ```js
+ * midiToCents(69) // 0
+ * midiToCents(81) // 1200
+ * ```
+ */
 export function midiToCents(midi: MIDINoteNumber): Cents {
   return semitonesToCents(midiToSemitones(midi))
 }
+/**
+ * @example ```js
+ * midiToRatio(81) // 2
+ * midiToRatio(69) // 1
+ * ```
+ */
 export function midiToRatio(midi: MIDINoteNumber): Ratio {
   return semitonesToRatio(midiToSemitones(midi))
 }
 export function midiToNoteName(
   midi: MIDINoteNumber,
-  roundingMethod: RoundingMethod = "nearest"
+  roundingMethod?: RoundingMethod
 ): string {
   return hzToNoteName(midiToHz(midi), roundingMethod)
 }
@@ -548,7 +567,7 @@ export function hzToNoteName(
   /** frequency of note in hertz */
   hz: Hz,
   /** whether to round up, down, or naturally */
-  roundingMethod: RoundingMethod = "nearest"
+  roundingMethod?: RoundingMethod
 ): string {
   validateHz(hz)
   const note =
@@ -628,7 +647,7 @@ export function hzToCents(targetHz: Hz, baseHz: Hz = A4): Cents {
  * hzToMidi(880) // 81
  * ```
  */
-export function hzToMidi(hz: Hz, roundingMethod: RoundingMethod = "nearest"): MIDINoteNumber {
+export function hzToMidi(hz: Hz, roundingMethod?: RoundingMethod): MIDINoteNumber {
   validateHz(hz)
   return semitonesToMidi(hzToSemitones(hz), roundingMethod)
 }
@@ -642,7 +661,7 @@ export function hzToMidi(hz: Hz, roundingMethod: RoundingMethod = "nearest"): MI
  */
 export function quantizeHz(
   hz: Hz,
-  roundingMethod: RoundingMethod = "nearest"
+  roundingMethod?: RoundingMethod
 ): Hz {
   validateHz(hz)
   const semitones = hzToSemitones(hz)
@@ -686,35 +705,7 @@ export class Pitch {
     instance.hz = midiToHz(midi)
     return instance
   }
-  static fromRatio(ratio: Ratio, baseHz: Hz = A4) {
-    const instance = new Pitch()
-    instance.hz = ratioToHz(ratio, baseHz)
-    return instance
-  }
-  static fromSemitones(semitones: Semitones, baseHz: Hz = A4) {
-    const instance = new Pitch()
-    instance.hz = semitonesToHz(semitones, baseHz)
-    return instance
-  }
-  static fromCents(cents: Cents, baseHz: Hz = A4) {
-    const instance = new Pitch()
-    instance.hz = centsToHz(cents, baseHz)
-    return instance
-  }
 
-  get semitones(): Semitones {
-    return hzToSemitones(this.hz)
-  }
-  get cents(): Cents {
-    return hzToCents(this.hz)
-  }
-  /** 
-   * @example for A4, `1`
-   * @example for A5, `2`
-  */
-  get ratio(): Ratio {
-    return hzToRatio(this.hz)
-  }
   /** @example for A4, `69` */
   get midi(): MIDINoteNumber {
     return hzToMidi(this.hz)
@@ -734,19 +725,19 @@ export class Pitch {
   
   /** returns the nearest note below */
   get closestNoteBelow(): NoteObject {
-    const snappedSemitones = Math.floor(this.semitones)
+    const snappedSemitones = Math.floor(hzToSemitones(this.hz))
     const snappedHz = semitonesToHz(snappedSemitones)
     return hzToNoteObject(snappedHz)
   }
   /** returns the nearest note above */
   get closestNoteAbove(): NoteObject {
-    const snappedSemitones = Math.ceil(this.semitones)
+    const snappedSemitones = Math.ceil(hzToSemitones(this.hz))
     const snappedHz = semitonesToHz(snappedSemitones)
     return hzToNoteObject(snappedHz)
   }
 
   /** snaps the pitch to the nearest semitone */
-  quantize(roundingMethod: RoundingMethod = "nearest") {
+  quantize(roundingMethod?: RoundingMethod) {
     this.hz = quantizeHz(this.hz, roundingMethod)
     return this
   }
@@ -777,4 +768,31 @@ export class Pitch {
     return this
   }
 
+  /** semitonesFrom, semitonesTo */
+  semitonesFrom(other: Pitch | Hz): Semitones {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToSemitones(this.hz, otherHz)
+  }
+  semitonesTo(other: Pitch | Hz): Semitones {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToSemitones(otherHz, this.hz)
+  }
+  /** centsFrom, centsTo */
+  centsFrom(other: Pitch | Hz): Cents {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToCents(this.hz, otherHz)
+  }
+  centsTo(other: Pitch | Hz): Cents {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToCents(otherHz, this.hz)
+  }
+  /** ratioFrom, ratioTo */
+  ratioFrom(other: Pitch | Hz): Ratio {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToRatio(this.hz, otherHz)
+  }
+  ratioTo(other: Pitch | Hz): Ratio {
+    const otherHz = other instanceof Pitch ? other.hz : other
+    return hzToRatio(otherHz, this.hz)
+  }
 }
