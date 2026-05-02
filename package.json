@@ -1,6 +1,6 @@
 {
   "name": "pitch-utils",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Pitch and frequency functions",
   "type": "module",
   "main": "./dist/index.js",
