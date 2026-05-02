@@ -654,82 +654,86 @@ describe("Pitch class", () => {
     })
     describe(".fromNamedNote()", () => {
       test("initializes from NamedNote", () => {
-        expect(khz.Pitch.fromNamedNote("A-1").hz).toBeCloseTo(13.75)
-        expect(khz.Pitch.fromNamedNote("A2").hz).toBeCloseTo(110)
-        expect(khz.Pitch.fromNamedNote("A3").hz).toBeCloseTo(220)
+        expect(new khz.Pitch({namedNote: "A-1"}).hz).toBeCloseTo(13.75)
+        expect(new khz.Pitch({namedNote: "A2"}).hz).toBeCloseTo(110)
+        expect(new khz.Pitch({namedNote: "A3"}).hz).toBeCloseTo(220)
       })
     })
     describe(".fromMidi()", () => {
       test("initializes from MIDI", () => {
-        expect(khz.Pitch.fromMidi(69).hz).toBeCloseTo(440)
-        expect(khz.Pitch.fromMidi(57).hz).toBeCloseTo(220)
-        expect(khz.Pitch.fromMidi(45).hz).toBeCloseTo(110)
+        expect(new khz.Pitch({midi: 69}).hz).toBeCloseTo(440)
+        expect(new khz.Pitch({midi: 57}).hz).toBeCloseTo(220)
+        expect(new khz.Pitch({midi: 45}).hz).toBeCloseTo(110)
       })
     })
   })
   describe("getters", () => {
     test(".noteAbove/.noteBelow", () => {
-      const pitch = new khz.Pitch(730)
+      const pitch = new khz.Pitch({hz: 730})
       expect(pitch.closestNoteBelow.note).toBe("F")
       expect(pitch.noteObject.note).toBe("F♯")
       expect(pitch.closestNoteAbove.note).toBe("F♯")
     })
     test(".midi", () => {
-      expect(new khz.Pitch(440).midi).toBe(69)
-      expect(new khz.Pitch(261.63).midi).toBe(60)
+      expect(new khz.Pitch({hz: 440}).midi).toBe(69)
+      expect(new khz.Pitch({hz: 261.63}).midi).toBe(60)
     })
     test(".octave", () => {
-      expect(new khz.Pitch(440).octave).toBe(4)
-      expect(new khz.Pitch(261.63).octave).toBe(4)
-      expect(new khz.Pitch(27.5).octave).toBe(0)
+      expect(new khz.Pitch({hz: 440}).octave).toBe(4)
+      expect(new khz.Pitch({hz: 261.63}).octave).toBe(4)
+      expect(new khz.Pitch({hz: 27.5}).octave).toBe(0)
     })
     test(".noteName", () => {
-      expect(new khz.Pitch(440).noteName).toBe("A")
-      expect(new khz.Pitch(261.63).noteName).toBe("C")
-      expect(new khz.Pitch(277.18).noteName).toBe("C♯")
+      expect(new khz.Pitch({hz: 440}).noteName).toBe("A")
+      expect(new khz.Pitch({hz: 261.63}).noteName).toBe("C")
+      expect(new khz.Pitch({hz: 277.18}).noteName).toBe("C♯")
     })
   })
   test(".hz updates", () => {
-    expect(new khz.Pitch(440).modRatio(3 / 2).hz).toBeCloseTo((440 * 3) / 2)
+    expect(new khz.Pitch({hz: 440}).modRatio(3 / 2).hz).toBeCloseTo((440 * 3) / 2)
   })
   describe("methods", () => {
     describe(".quantize()", () => {
       test("quantizing sharps", () => {
-        const sharp = new khz.Pitch(450)
+        const sharp = new khz.Pitch({hz: 450})
         expect(sharp.noteObject.note).toBe("A")
         expect(sharp.noteObject.octave).toBe(4)
         expect(sharp.noteObject.detune).toBeGreaterThan(0)
+        expect(sharp.isSharp).toBe(true)
+        expect(sharp.isFlat).toBe(false)
         sharp.quantize()
         expect(sharp.noteObject.note).toBe("A")
         expect(sharp.noteObject.octave).toBe(4)
         expect(sharp.noteObject.detune).toBe(0)
+        expect(sharp.isSharp).toBe(false)
+        expect(sharp.isFlat).toBe(false)
       })
     })
   })
 
   test(".addSemitones and .transpose", () => {
-    const pitch = new khz.Pitch(440)
+    const pitch = new khz.Pitch({hz: 440})
     pitch.addSemitones(12)
     expect(pitch.hz).toBeCloseTo(880)
     pitch.transpose(-12)
     expect(pitch.hz).toBeCloseTo(440)
   })
   test(".addCents and de.tune", () => {
-    const pitch = new khz.Pitch(440)
+    const pitch = new khz.Pitch({hz: 440})
     pitch.addCents(1200)
     expect(pitch.hz).toBeCloseTo(880)
     pitch.detune(-1200)
     expect(pitch.hz).toBeCloseTo(440)
   })
   test(".shift", () => {
-    const pitch = new khz.Pitch(440)
+    const pitch = new khz.Pitch({hz: 440})
     pitch.shift(10)
     expect(pitch.hz).toBeCloseTo(450)
     pitch.shift(-10)
     expect(pitch.hz).toBeCloseTo(440)
   })
   test(".modRatio", () => {
-    const pitch = new khz.Pitch(440)
+    const pitch = new khz.Pitch({hz: 440})
     pitch.modRatio(2)
     expect(pitch.hz).toBeCloseTo(880)
     pitch.modRatio(0.5)
@@ -742,8 +746,8 @@ describe("Pitch class", () => {
     const pitch880Hz = 880
 
     beforeEach(() => {
-      pitch440 = new khz.Pitch(440)
-      pitch880 = new khz.Pitch(880)
+      pitch440 = new khz.Pitch({hz: 440})
+      pitch880 = new khz.Pitch({hz: 880})
     })
 
     const tests = [

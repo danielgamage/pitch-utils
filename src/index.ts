@@ -693,25 +693,25 @@ export class Pitch {
   hz: Hz
 
   constructor(initializer: {
-    frequency: Hz
+    hz: Hz
   } | {
     namedNote: NoteName
   } | {
     midi: MIDINoteNumber
-  } = { frequency: A4 }) {
+  } = { hz: A4 }) {
     if ("namedNote" in initializer) {
       this.hz = namedNoteToHz(initializer.namedNote)
     } else if ("midi" in initializer) {
       this.hz = midiToHz(initializer.midi)
     } else {
-      validateHz(initializer.frequency)
-      this.hz = initializer.frequency
+      validateHz(initializer.hz)
+      this.hz = initializer.hz
     }
   }
 
   /** Creates a new instance to preserve source pitch while branching off a new chainable pitch. */
   clone() {
-    return new Pitch({ frequency: this.hz })
+    return new Pitch({ hz: this.hz })
   }
 
   // Getters for various representations of the pitch
