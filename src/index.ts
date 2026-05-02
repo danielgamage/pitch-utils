@@ -709,6 +709,11 @@ export class Pitch {
     }
   }
 
+  /** Creates a new instance to preserve source pitch while branching off a new chainable pitch. */
+  clone() {
+    return new Pitch({ frequency: this.hz })
+  }
+
   // Getters for various representations of the pitch
 
   /** @example for A4, `69` */
