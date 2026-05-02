@@ -742,23 +742,25 @@ export class Pitch {
   get isFlat(): boolean {
     return this.detuning < 0
   }
+
+  // Related notes
   
-  /** returns the nearest note below */
+  /** Returns the nearest note below */
   get closestNoteBelow(): NoteObject {
     const snappedSemitones = Math.floor(hzToSemitones(this.hz))
     const snappedHz = semitonesToHz(snappedSemitones)
     return hzToNoteObject(snappedHz)
   }
-  /** returns the nearest note above */
+  /** Returns the nearest note above */
   get closestNoteAbove(): NoteObject {
     const snappedSemitones = Math.ceil(hzToSemitones(this.hz))
     const snappedHz = semitonesToHz(snappedSemitones)
     return hzToNoteObject(snappedHz)
   }
 
-  // Chainable actions
+  // Chainable actions / mutations
 
-  /** Snaps the pitch to the nearest semitone */
+  /** Snaps the current pitch to the nearest semitone */
   quantize(roundingMethod?: RoundingMethod) {
     this.hz = quantizeHz(this.hz, roundingMethod)
     return this
@@ -768,51 +770,63 @@ export class Pitch {
     this.hz = semitonesToHz(semitones, this.hz)
     return this
   }
+  /** Transposes the current pitch by a number of semitones */
   transpose = this.addSemitones
-  /** Shifts the pitch by a number of hertz */
-  shift(hz: Hz) {
+  /** Shifts the current pitch by a number of hertz */
+  addHz(hz: Hz) {
     this.hz += hz
     return this
   }
-  /** Detunes the pitch by a number of cents */
+  shift = this.addHz
+  /** Detunes the current pitch by a number of cents */
   addCents(cents: Cents) {
     this.hz = centsToHz(cents, this.hz)
     return this
   }
   detune = this.addCents
-  /** Modulates the pitch by a ratio */
-  modRatio(ratio: Ratio) {
+  /** Modulates the current pitch by a ratio */
+  multiply(ratio: Ratio) {
     this.hz = ratioToHz(ratio, this.hz)
     return this
   }
+  modRatio = this.multiply
 
   // Comparators
 
-  /** Semitone comparators */
+  // Semitone comparators
+  /** How many semitones is it from the other pitch? */
   semitonesFrom(other: Pitch | Hz): Semitones {
     const otherHz = other instanceof Pitch ? other.hz : other
     return hzToSemitones(this.hz, otherHz)
   }
+  /** How many semitones is it to the other pitch? */
   semitonesTo(other: Pitch | Hz): Semitones {
     const otherHz = other instanceof Pitch ? other.hz : other
     return hzToSemitones(otherHz, this.hz)
   }
-  /** Cents comparators */
+
+  // Cents comparators
+  /** How many cents is it from the other pitch? */
   centsFrom(other: Pitch | Hz): Cents {
     const otherHz = other instanceof Pitch ? other.hz : other
     return hzToCents(this.hz, otherHz)
   }
+  /** How many cents is it to the other pitch? */
   centsTo(other: Pitch | Hz): Cents {
     const otherHz = other instanceof Pitch ? other.hz : other
     return hzToCents(otherHz, this.hz)
   }
-  /** Ratio comparators */
+  
+  // Ratio comparators
+  /** What interval ratio is it from the other pitch? */
   ratioFrom(other: Pitch | Hz): Ratio {
     const otherHz = other instanceof Pitch ? other.hz : other
     return hzToRatio(this.hz, otherHz)
   }
+  /** What interval ratio is it to the other pitch? */
   ratioTo(other: Pitch | Hz): Ratio {
     const otherHz = other instanceof Pitch ? other.hz : other
     return hzToRatio(otherHz, this.hz)
   }
 }
+
