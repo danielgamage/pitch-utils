@@ -708,33 +708,6 @@ export class Pitch {
       this.hz = initializer.frequency
     }
   }
-  
-  /**
-   * initialize from NamedNote
-   * @deprecated use constructor with (eg.) `{namedNote: "A4"}` instead:
-   * ```js
-   * const pitch = new Pitch({namedNote: "A3"})
-   * console.log(pitch.hz) // 220
-   * ```
-   */
-  static fromNamedNote(note: NoteName) {
-    const instance = new Pitch()
-    instance.hz = namedNoteToHz(note)
-    return instance
-  }
-  /**
-   * initialize from midi pitch number
-   * @deprecated use constructor with (eg.) `{midi: 69}` instead:
-   * ```js
-   * const pitch = new Pitch({midi: 57})
-   * console.log(pitch.hz) // 220
-   * ```
-   */
-  static fromMidi(midi: MIDINoteNumber) {
-    const instance = new Pitch()
-    instance.hz = midiToHz(midi)
-    return instance
-  }
 
   // Getters for various representations of the pitch
 
