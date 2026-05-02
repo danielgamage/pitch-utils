@@ -732,6 +732,16 @@ export class Pitch {
   get noteName(): NoteName {
     return this.noteObject.note
   }
+  /** @example for A4, `0` */
+  get detuning(): Cents {
+    return this.noteObject.detune
+  }
+  get isSharp(): boolean {
+    return this.detuning > 0
+  }
+  get isFlat(): boolean {
+    return this.detuning < 0
+  }
   
   /** returns the nearest note below */
   get closestNoteBelow(): NoteObject {
