@@ -146,12 +146,16 @@ export const blackNotesOnPiano = enharmonicChromaticScale
  * Selects a Math.* rounding function based on RoundingMethod union type
  * @returns
  */
-export const getRoundingFunction = (roundingMethod: RoundingMethod) => {
-  return {
-    nearest: Math.round,
-    up: Math.ceil,
-    down: Math.floor,
-  }[roundingMethod] ?? Math.round
+export const getRoundingFunction = (roundingMethod?: RoundingMethod) => {
+  if (roundingMethod) {
+    return {
+      nearest: Math.round,
+      up: Math.ceil,
+      down: Math.floor,
+    }[roundingMethod]
+  } else {
+    return Math.round
+  }
 }
 /**
  *
@@ -574,7 +578,12 @@ export function hzToNoteName(
     getRoundingFunction(roundingMethod)(
       12 * (Math.log(hz / 440) / Math.log(2))
     ) + 69
-  return chromaticScale.at((note + 12 * 1000) % 12)
+  const noteName = chromaticScale.at((note + 12 * 1000) % 12)
+  if (noteName) {
+    return noteName
+  } else {
+    throw new Error("Could not determine note name for hz: " + hz)
+  }
 }
 
 export function hzToNoteObject(
