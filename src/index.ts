@@ -736,6 +736,8 @@ export class Pitch {
     return instance
   }
 
+  // Getters for various representations of the pitch
+
   /** @example for A4, `69` */
   get midi(): MIDINoteNumber {
     return hzToMidi(this.hz)
@@ -766,39 +768,39 @@ export class Pitch {
     return hzToNoteObject(snappedHz)
   }
 
-  /** snaps the pitch to the nearest semitone */
+  // Chainable actions
+
+  /** Snaps the pitch to the nearest semitone */
   quantize(roundingMethod?: RoundingMethod) {
     this.hz = quantizeHz(this.hz, roundingMethod)
     return this
   }
-
-  /** transposes the current pitch by a number of semitones */
+  /** Transposes the current pitch by a number of semitones */
   addSemitones(semitones: Semitones) {
     this.hz = semitonesToHz(semitones, this.hz)
     return this
   }
   transpose = this.addSemitones
-
-  /** shifts the pitch by a number of hertz */
+  /** Shifts the pitch by a number of hertz */
   shift(hz: Hz) {
     this.hz += hz
     return this
   }
-
-  /** detunes the pitch by a number of cents */
+  /** Detunes the pitch by a number of cents */
   addCents(cents: Cents) {
     this.hz = centsToHz(cents, this.hz)
     return this
   }
   detune = this.addCents
-
-  /** modulates the pitch by a ratio */
+  /** Modulates the pitch by a ratio */
   modRatio(ratio: Ratio) {
     this.hz = ratioToHz(ratio, this.hz)
     return this
   }
 
-  /** semitonesFrom, semitonesTo */
+  // Comparators
+
+  /** Semitone comparators */
   semitonesFrom(other: Pitch | Hz): Semitones {
     const otherHz = other instanceof Pitch ? other.hz : other
     return hzToSemitones(this.hz, otherHz)
@@ -807,7 +809,7 @@ export class Pitch {
     const otherHz = other instanceof Pitch ? other.hz : other
     return hzToSemitones(otherHz, this.hz)
   }
-  /** centsFrom, centsTo */
+  /** Cents comparators */
   centsFrom(other: Pitch | Hz): Cents {
     const otherHz = other instanceof Pitch ? other.hz : other
     return hzToCents(this.hz, otherHz)
@@ -816,7 +818,7 @@ export class Pitch {
     const otherHz = other instanceof Pitch ? other.hz : other
     return hzToCents(otherHz, this.hz)
   }
-  /** ratioFrom, ratioTo */
+  /** Ratio comparators */
   ratioFrom(other: Pitch | Hz): Ratio {
     const otherHz = other instanceof Pitch ? other.hz : other
     return hzToRatio(this.hz, otherHz)
