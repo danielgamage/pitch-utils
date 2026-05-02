@@ -115,18 +115,18 @@ export const chromaticScale = [
  * Note names with alternate enharmonic names
  */
 export const enharmonicChromaticScale = [
-  ["C", "B♯"],
-  ["C♯", "D♭"],
-  ["D"],
-  ["D♯", "E♭"],
-  ["E", "F♭"],
-  ["F", "E♯"],
-  ["F♯", "G♭"],
-  ["G"],
+  ["C", "B♯", "D♭♭"],
+  ["C♯", "D♭", "B♯♯"],
+  ["D", "C♯♯", "E♭♭"],
+  ["D♯", "E♭", "F♭♭"],
+  ["E", "F♭", "D♯♯"],
+  ["F", "E♯", "G♭♭"],
+  ["F♯", "G♭", "E♯♯"],
+  ["G", "F♯♯", "A♭♭"],
   ["G♯", "A♭"],
-  ["A"],
-  ["A♯", "B♭"],
-  ["B", "C♭"],
+  ["A", "G♯♯", "B♭♭"],
+  ["A♯", "B♭", "C♭♭"],
+  ["B", "C♭", "A♯♯"],
 ]
 
 // named note is black on keyboard
@@ -157,7 +157,7 @@ export const getRoundingFunction = (roundingMethod: RoundingMethod) => {
  *
  */
 export const getNoteIndexInOctave = (note: string) => {
-  let scaleIndex = enharmonicChromaticScale.findIndex((el) => el.includes(note))
+  let scaleIndex = enharmonicChromaticScale.findIndex((enharmonicNoteNames) => enharmonicNoteNames.includes(note))
   // center around A4
   if (scaleIndex > -1) {
     return -9 + scaleIndex
