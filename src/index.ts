@@ -691,17 +691,30 @@ export class Pitch {
    * base value for calculations
    */
   hz: Hz
-  constructor(
-    /** frequency of note in hertz */
-    public frequency: Hz = A4
-  ) {
-    validateHz(frequency)
-    this.hz = frequency
+
+  constructor(initializer: {
+    frequency: Hz
+  } | {
+    namedNote: NoteName
+  } | {
+    midi: MIDINoteNumber
+  } = { frequency: A4 }) {
+    if ("namedNote" in initializer) {
+      this.hz = namedNoteToHz(initializer.namedNote)
+    } else if ("midi" in initializer) {
+      this.hz = midiToHz(initializer.midi)
+    } else {
+      validateHz(initializer.frequency)
+      this.hz = initializer.frequency
+    }
   }
+  
   /**
    * initialize from NamedNote
-   * @example ```js
-   * Pitch.fromNamedNote("A3").hz // 220
+   * @deprecated use constructor with (eg.) `{namedNote: "A4"}` instead:
+   * ```js
+   * const pitch = new Pitch({namedNote: "A3"})
+   * console.log(pitch.hz) // 220
    * ```
    */
   static fromNamedNote(note: NoteName) {
@@ -709,6 +722,14 @@ export class Pitch {
     instance.hz = namedNoteToHz(note)
     return instance
   }
+  /**
+   * initialize from midi pitch number
+   * @deprecated use constructor with (eg.) `{midi: 69}` instead:
+   * ```js
+   * const pitch = new Pitch({midi: 57})
+   * console.log(pitch.hz) // 220
+   * ```
+   */
   static fromMidi(midi: MIDINoteNumber) {
     const instance = new Pitch()
     instance.hz = midiToHz(midi)
